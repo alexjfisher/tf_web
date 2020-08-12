@@ -2,6 +2,12 @@ data "aws_vpc" "environment" {
   id = var.vpc_id
 }
 
+data "cloudflare_zones" "zone" {
+  filter {
+    name = var.domain
+  }
+}
+
 resource "aws_instance" "web" {
   ami           = var.ami[var.region]
   instance_type = var.instance_type
@@ -36,11 +42,11 @@ resource "aws_elb" "web" {
 }
 
 resource "cloudflare_record" "web" {
-  domain = var.domain
-  name   = "${var.environment}.${var.domain}"
-  value  = aws_elb.web.dns_name
-  type   = "CNAME"
-  ttl    = 3600
+  zone_id = data.cloudflare_zones.zone.zones[0].id
+  name    = "${var.environment}.${var.domain}"
+  value   = aws_elb.web.dns_name
+  type    = "CNAME"
+  ttl     = 3600
 }
 
 resource "aws_instance" "app" {
